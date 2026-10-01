@@ -1,0 +1,20 @@
+{
+  "name": "sh4mr0ck-ctf-blog",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Blog CTF tiếng Việt với Three.js, tông đỏ–đen và GitHub Pages.",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "dev": "node scripts/serve.mjs --port 4173",
+    "preview": "node scripts/serve.mjs --dist --port 4173",
+    "test": "node --test tests/unit.test.js",
+    "test:e2e": "playwright test",
+    "check": "npm test && npm run build && npm run test:e2e"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "esbuild": "0.28.2"
+  },
+  "engines": { "node": ">=22" }
+}
