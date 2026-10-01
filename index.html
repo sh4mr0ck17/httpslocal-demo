@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
+  <meta name="referrer" content="no-referrer">
+  <title>HTTPS security demo</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #0b1020; color: #eaf0ff; }
+    main { max-width: 760px; padding: 2rem; border: 1px solid #26345f; border-radius: 18px; background: #111936; box-shadow: 0 20px 80px #0008; }
+    h1 { margin-top: 0; color: #7dd3fc; }
+    code { background: #050816; padding: .15rem .35rem; border-radius: .35rem; }
+    .ok { color: #86efac; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>HTTPS trusted deployment demo</h1>
+    <p class="ok">OK: served over a fixed public hostname with browser-trusted TLS.</p>
+    <p>Static demo page. No cookies, no third-party scripts, restrictive CSP, no forms, no framing.</p>
+    <p>After buying a domain, map it to the same deployment or replace this with Cloudflare Tunnel + custom domain.</p>
+  </main>
+</body>
+</html>
