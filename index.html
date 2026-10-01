@@ -3,24 +3,502 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
+  <title>sh4mr0ck17 // CyberSec & CTF Ops</title>
+  <meta name="description" content="Cybersecurity notes, CTF research, offensive security writeups, and infrastructure testing by sh4mr0ck17.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
   <meta name="referrer" content="no-referrer">
-  <title>HTTPS security demo</title>
   <style>
-    :root { color-scheme: dark; font-family: system-ui, sans-serif; }
-    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #0b1020; color: #eaf0ff; }
-    main { max-width: 760px; padding: 2rem; border: 1px solid #26345f; border-radius: 18px; background: #111936; box-shadow: 0 20px 80px #0008; }
-    h1 { margin-top: 0; color: #7dd3fc; }
-    code { background: #050816; padding: .15rem .35rem; border-radius: .35rem; }
-    .ok { color: #86efac; font-weight: 700; }
+    :root {
+      --bg: #050811;
+      --card-bg: rgba(10, 16, 32, 0.78);
+      --card-border: rgba(56, 189, 248, 0.22);
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --cyan: #38bdf8;
+      --green: #4ade80;
+      --red: #f43f5e;
+      --yellow: #facc15;
+      --mono: "JetBrains Mono", "Fira Code", monospace, system-ui;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overflow-x: hidden;
+    }
+    #canvas-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      pointer-events: none;
+    }
+    .layout {
+      position: relative;
+      z-index: 10;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 6rem;
+    }
+    header {
+      padding: 2.5rem 2rem;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+      margin-bottom: 2.5rem;
+      position: relative;
+      overflow: hidden;
+    }
+    header::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: linear-gradient(90deg, #38bdf8, #818cf8, #4ade80);
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      color: var(--green);
+      background: rgba(74, 222, 128, 0.12);
+      border: 1px solid rgba(74, 222, 128, 0.3);
+      padding: 0.3rem 0.75rem;
+      border-radius: 9999px;
+      margin-bottom: 1rem;
+    }
+    .badge-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--green);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--green);
+    }
+    h1 {
+      margin: 0 0 0.5rem;
+      font-size: 2.4rem;
+      font-family: var(--mono);
+      color: #fff;
+      letter-spacing: -0.03em;
+    }
+    h1 span { color: var(--cyan); }
+    .subtitle {
+      margin: 0 0 1.25rem;
+      color: var(--muted);
+      font-size: 1.05rem;
+      line-height: 1.5;
+    }
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      font-family: var(--mono);
+    }
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    .stat-num {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--cyan);
+    }
+    .stat-label {
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .interactive-panel {
+      margin-bottom: 2.5rem;
+      padding: 1.25rem 1.75rem;
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px dashed rgba(56, 189, 248, 0.3);
+      border-radius: 12px;
+      backdrop-filter: blur(10px);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      font-family: var(--mono);
+      font-size: 0.85rem;
+    }
+    .node-hud {
+      display: flex;
+      gap: 1.5rem;
+      align-items: center;
+    }
+    .controls {
+      display: flex;
+      gap: 0.75rem;
+    }
+    .btn {
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid var(--cyan);
+      color: var(--cyan);
+      padding: 0.45rem 0.9rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      transition: all 0.2s ease;
+    }
+    .btn:hover {
+      background: var(--cyan);
+      color: #000;
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.5);
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 1.5rem;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 1.75rem;
+      backdrop-filter: blur(12px);
+      transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .card:hover {
+      transform: translateY(-4px);
+      border-color: var(--cyan);
+      box-shadow: 0 12px 30px rgba(56, 189, 248, 0.15);
+    }
+    .card-tag {
+      display: inline-block;
+      align-self: flex-start;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+      margin-bottom: 0.75rem;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+    .tag-red { color: var(--red); background: rgba(244, 63, 94, 0.15); border: 1px solid rgba(244, 63, 94, 0.3); }
+    .tag-blue { color: var(--cyan); background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); }
+    .tag-yellow { color: var(--yellow); background: rgba(250, 204, 21, 0.15); border: 1px solid rgba(250, 204, 21, 0.3); }
+    .tag-green { color: var(--green); background: rgba(74, 222, 128, 0.15); border: 1px solid rgba(74, 222, 128, 0.3); }
+    .card-title {
+      margin: 0 0 0.75rem;
+      font-size: 1.25rem;
+      color: #fff;
+      line-height: 1.4;
+    }
+    .card-summary {
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.6;
+      margin-bottom: 1.25rem;
+      flex-grow: 1;
+    }
+    .card-footer {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      color: var(--muted);
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding-top: 0.85rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .card-footer a {
+      color: var(--cyan);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .card-footer a:hover {
+      text-decoration: underline;
+    }
+    footer {
+      margin-top: 4rem;
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 0.85rem;
+      color: var(--muted);
+      padding: 2rem 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    @media (max-width: 640px) {
+      h1 { font-size: 1.8rem; }
+      .grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
-  <main>
-    <h1>HTTPS trusted deployment demo</h1>
-    <p class="ok">OK: served over a fixed public hostname with browser-trusted TLS.</p>
-    <p>Static demo page. No cookies, no third-party scripts, restrictive CSP, no forms, no framing.</p>
-    <p>After buying a domain, map it to the same deployment or replace this with Cloudflare Tunnel + custom domain.</p>
-  </main>
+  <div id="canvas-container"></div>
+
+  <div class="layout">
+    <header>
+      <div class="badge">
+        <span class="badge-dot"></span>
+        DEFENSIVE & OFFENSIVE LAB ACTIVE
+      </div>
+      <h1>sh4mr0ck17<span>.sec</span></h1>
+      <p class="subtitle">Offensive security research, CTF writeups, web exploitation, and zero-trust infrastructure engineering.</p>
+      
+      <div class="stats-bar">
+        <div class="stat-item">
+          <div class="stat-num">50+</div>
+          <div class="stat-label">CTF Challenges Solved</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">TLS/ACME</div>
+          <div class="stat-label">Hardened Infra</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">Web & Pwn</div>
+          <div class="stat-label">Specializations</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">100%</div>
+          <div class="stat-label">Automated Delivery</div>
+        </div>
+      </div>
+    </header>
+
+    <div class="interactive-panel">
+      <div class="node-hud">
+        <div>3D MATRIX: <span id="node-count" style="color:var(--cyan)">ACTIVE CYBER NODE</span></div>
+        <div>ROTATION: <span id="rot-speed" style="color:var(--green)">1.0x</span></div>
+      </div>
+      <div class="controls">
+        <button class="btn" id="btn-pulse">Trigger Security Ping</button>
+        <button class="btn" id="btn-theme">Toggle Node Grid</button>
+      </div>
+    </div>
+
+    <main class="grid">
+      <article class="card">
+        <div>
+          <span class="card-tag tag-blue">Infrastructure</span>
+          <h2 class="card-title">Production HTTPS & Let's Encrypt for Non-Domain Lab Servers</h2>
+          <p class="card-summary">Overcoming the missing public domain challenge. Using DuckDNS, sslip.io, and win-acme on Windows VPS environments with auto-renewing TLS certificates.</p>
+        </div>
+        <div class="card-footer">
+          <span>2026-10-01 // IIS / ACME</span>
+          <a href="#lab-infra">#infra</a>
+        </div>
+      </article>
+
+      <article class="card">
+        <div>
+          <span class="card-tag tag-red">Web Exploitation</span>
+          <h2 class="card-title">Server-Side Template Injection (SSTI) in Modern Web Frameworks</h2>
+          <p class="card-summary">Exploration of blind and inclusion-based SSTI payloads. Dissecting Jinja2, Twig, and Node.js rendering bugs to achieve stable command execution.</p>
+        </div>
+        <div class="card-footer">
+          <span>2026-09-18 // Web CTF</span>
+          <a href="#ssti">#exploit</a>
+        </div>
+      </article>
+
+      <article class="card">
+        <div>
+          <span class="card-tag tag-yellow">CTF Analysis</span>
+          <h2 class="card-title">Reversing AI CTF Challenges: Prompt Leakage & Model Jailbreaks</h2>
+          <p class="card-summary">Methodologies for prompt extraction, delimiter evasion, and breaking automated LLM evaluators in modern offensive cybersecurity competitions.</p>
+        </div>
+        <div class="card-footer">
+          <span>2026-09-15 // AI / ML</span>
+          <a href="#ai-ctf">#writeup</a>
+        </div>
+      </article>
+
+      <article class="card">
+        <div>
+          <span class="card-tag tag-green">Zero-Trust</span>
+          <h2 class="card-title">Cloudflare Tunnel Architecture: Exposing Internal Services Securely</h2>
+          <p class="card-summary">Eliminating open inbound firewall ports. Routing webserver traffic through QUIC-based cloudflared daemons without sacrificing end-user TLS trust.</p>
+        </div>
+        <div class="card-footer">
+          <span>2026-09-08 // Perimeter</span>
+          <a href="#tunnels">#network</a>
+        </div>
+      </article>
+
+      <article class="card">
+        <div>
+          <span class="card-tag tag-blue">Hardening</span>
+          <h2 class="card-title">Content Security Policy (CSP) & Strict Transport Security Best Practices</h2>
+          <p class="card-summary">Preventing XSS and downgrade attacks with zero-dependency browser security headers. Full dissection of frame-ancestors, upgrade-insecure-requests, and HSTS preload.</p>
+        </div>
+        <div class="card-footer">
+          <span>2026-08-27 // Defensive</span>
+          <a href="#headers">#defend</a>
+        </div>
+      </article>
+
+      <article class="card">
+        <div>
+          <span class="card-tag tag-red">Binary Exploitation</span>
+          <h2 class="card-title">Modern Stack Protections: Bypassing ASLR & Stack Canaries</h2>
+          <p class="card-summary">Practical walkthrough of information leak primitives, ROP chain construction, and ret2libc techniques under contemporary Linux kernels.</p>
+        </div>
+        <div class="card-footer">
+          <span>2026-08-14 // Pwn</span>
+          <a href="#pwn">#binary</a>
+        </div>
+      </article>
+    </main>
+
+    <footer>
+      <p>&copy; 2026 sh4mr0ck17. Powered by Three.js & GitHub Pages. Static TLS secured.</p>
+    </footer>
+  </div>
+
+  <!-- Three.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script>
+    (function() {
+      const container = document.getElementById('canvas-container');
+      const scene = new THREE.Scene();
+      
+      const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.z = 24;
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      container.appendChild(renderer.domElement);
+
+      // Node Geometry - Cyber Shield Sphere / Icosahedron
+      const sphereGeo = new THREE.IcosahedronGeometry(9, 2);
+      const sphereMat = new THREE.MeshBasicMaterial({
+        color: 0x38bdf8,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.18
+      });
+      const shieldSphere = new THREE.Mesh(sphereGeo, sphereMat);
+      scene.add(shieldSphere);
+
+      // Inner Core Mesh
+      const coreGeo = new THREE.IcosahedronGeometry(4.5, 1);
+      const coreMat = new THREE.MeshBasicMaterial({
+        color: 0x818cf8,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.4
+      });
+      const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+      scene.add(coreMesh);
+
+      // Cyber Particles / Nodes
+      const particleCount = 220;
+      const particleGeo = new THREE.BufferGeometry();
+      const positions = new Float32Array(particleCount * 3);
+
+      for (let i = 0; i < particleCount * 3; i += 3) {
+        positions[i] = (Math.random() - 0.5) * 55;
+        positions[i + 1] = (Math.random() - 0.5) * 55;
+        positions[i + 2] = (Math.random() - 0.5) * 35;
+      }
+
+      particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      const particleMat = new THREE.PointsMaterial({
+        color: 0x38bdf8,
+        size: 0.18,
+        transparent: true,
+        opacity: 0.65
+      });
+      const particles = new THREE.Points(particleGeo, particleMat);
+      scene.add(particles);
+
+      // Mouse tracking for parallax
+      let mouseX = 0;
+      let mouseY = 0;
+      let targetX = 0;
+      let targetY = 0;
+
+      window.addEventListener('mousemove', (e) => {
+        mouseX = (e.clientX - window.innerWidth / 2) * 0.0012;
+        mouseY = (e.clientY - window.innerHeight / 2) * 0.0012;
+      });
+
+      // Window resize handler
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+      // Interactive controls
+      let speedMultiplier = 1.0;
+      const btnPulse = document.getElementById('btn-pulse');
+      const btnTheme = document.getElementById('btn-theme');
+      const rotSpeedEl = document.getElementById('rot-speed');
+
+      if (btnPulse) {
+        btnPulse.addEventListener('click', () => {
+          speedMultiplier = 4.0;
+          shieldSphere.scale.set(1.15, 1.15, 1.15);
+          sphereMat.opacity = 0.55;
+          coreMat.color.setHex(0x4ade80);
+          setTimeout(() => {
+            speedMultiplier = 1.0;
+            shieldSphere.scale.set(1.0, 1.0, 1.0);
+            sphereMat.opacity = 0.18;
+            coreMat.color.setHex(0x818cf8);
+            rotSpeedEl.innerText = "1.0x";
+          }, 800);
+          rotSpeedEl.innerText = "4.0x (PING)";
+        });
+      }
+
+      if (btnTheme) {
+        btnTheme.addEventListener('click', () => {
+          sphereMat.wireframe = !sphereMat.wireframe;
+          sphereMat.opacity = sphereMat.wireframe ? 0.18 : 0.08;
+        });
+      }
+
+      // Animation Loop
+      function animate() {
+        requestAnimationFrame(animate);
+
+        targetX += (mouseX - targetX) * 0.05;
+        targetY += (mouseY - targetY) * 0.05;
+
+        shieldSphere.rotation.x += 0.0018 * speedMultiplier;
+        shieldSphere.rotation.y += 0.0028 * speedMultiplier;
+
+        coreMesh.rotation.x -= 0.003 * speedMultiplier;
+        coreMesh.rotation.y -= 0.004 * speedMultiplier;
+
+        particles.rotation.y += 0.0006;
+
+        scene.rotation.y = targetX * 1.5;
+        scene.rotation.x = targetY * 1.5;
+
+        renderer.render(scene, camera);
+      }
+
+      animate();
+    })();
+  </script>
 </body>
 </html>
