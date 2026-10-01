@@ -3,502 +3,136 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>sh4mr0ck17 // CyberSec & CTF Ops</title>
-  <meta name="description" content="Cybersecurity notes, CTF research, offensive security writeups, and infrastructure testing by sh4mr0ck17.">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests">
-  <meta name="referrer" content="no-referrer">
-  <style>
-    :root {
-      --bg: #050811;
-      --card-bg: rgba(10, 16, 32, 0.78);
-      --card-border: rgba(56, 189, 248, 0.22);
-      --text: #e2e8f0;
-      --muted: #94a3b8;
-      --cyan: #38bdf8;
-      --green: #4ade80;
-      --red: #f43f5e;
-      --yellow: #facc15;
-      --mono: "JetBrains Mono", "Fira Code", monospace, system-ui;
-    }
-    * { box-sizing: border-box; }
-    html, body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      min-height: 100vh;
-      background: var(--bg);
-      color: var(--text);
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      overflow-x: hidden;
-    }
-    #canvas-container {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      z-index: 0;
-      pointer-events: none;
-    }
-    .layout {
-      position: relative;
-      z-index: 10;
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 2rem 1.5rem 6rem;
-    }
-    header {
-      padding: 2.5rem 2rem;
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 16px;
-      backdrop-filter: blur(14px);
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
-      margin-bottom: 2.5rem;
-      position: relative;
-      overflow: hidden;
-    }
-    header::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 3px;
-      background: linear-gradient(90deg, #38bdf8, #818cf8, #4ade80);
-    }
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-family: var(--mono);
-      font-size: 0.85rem;
-      color: var(--green);
-      background: rgba(74, 222, 128, 0.12);
-      border: 1px solid rgba(74, 222, 128, 0.3);
-      padding: 0.3rem 0.75rem;
-      border-radius: 9999px;
-      margin-bottom: 1rem;
-    }
-    .badge-dot {
-      width: 8px;
-      height: 8px;
-      background: var(--green);
-      border-radius: 50%;
-      box-shadow: 0 0 10px var(--green);
-    }
-    h1 {
-      margin: 0 0 0.5rem;
-      font-size: 2.4rem;
-      font-family: var(--mono);
-      color: #fff;
-      letter-spacing: -0.03em;
-    }
-    h1 span { color: var(--cyan); }
-    .subtitle {
-      margin: 0 0 1.25rem;
-      color: var(--muted);
-      font-size: 1.05rem;
-      line-height: 1.5;
-    }
-    .stats-bar {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 1rem;
-      margin-top: 1.5rem;
-      padding-top: 1.5rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
-      font-family: var(--mono);
-    }
-    .stat-item {
-      display: flex;
-      flex-direction: column;
-      gap: 0.25rem;
-    }
-    .stat-num {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: var(--cyan);
-    }
-    .stat-label {
-      font-size: 0.8rem;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-    .interactive-panel {
-      margin-bottom: 2.5rem;
-      padding: 1.25rem 1.75rem;
-      background: rgba(15, 23, 42, 0.65);
-      border: 1px dashed rgba(56, 189, 248, 0.3);
-      border-radius: 12px;
-      backdrop-filter: blur(10px);
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      align-items: center;
-      gap: 1rem;
-      font-family: var(--mono);
-      font-size: 0.85rem;
-    }
-    .node-hud {
-      display: flex;
-      gap: 1.5rem;
-      align-items: center;
-    }
-    .controls {
-      display: flex;
-      gap: 0.75rem;
-    }
-    .btn {
-      background: rgba(56, 189, 248, 0.15);
-      border: 1px solid var(--cyan);
-      color: var(--cyan);
-      padding: 0.45rem 0.9rem;
-      border-radius: 6px;
-      cursor: pointer;
-      font-family: var(--mono);
-      font-size: 0.8rem;
-      transition: all 0.2s ease;
-    }
-    .btn:hover {
-      background: var(--cyan);
-      color: #000;
-      box-shadow: 0 0 15px rgba(56, 189, 248, 0.5);
-    }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-      gap: 1.5rem;
-    }
-    .card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 14px;
-      padding: 1.75rem;
-      backdrop-filter: blur(12px);
-      transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-    .card:hover {
-      transform: translateY(-4px);
-      border-color: var(--cyan);
-      box-shadow: 0 12px 30px rgba(56, 189, 248, 0.15);
-    }
-    .card-tag {
-      display: inline-block;
-      align-self: flex-start;
-      font-family: var(--mono);
-      font-size: 0.75rem;
-      padding: 0.2rem 0.6rem;
-      border-radius: 4px;
-      margin-bottom: 0.75rem;
-      text-transform: uppercase;
-      font-weight: 700;
-    }
-    .tag-red { color: var(--red); background: rgba(244, 63, 94, 0.15); border: 1px solid rgba(244, 63, 94, 0.3); }
-    .tag-blue { color: var(--cyan); background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); }
-    .tag-yellow { color: var(--yellow); background: rgba(250, 204, 21, 0.15); border: 1px solid rgba(250, 204, 21, 0.3); }
-    .tag-green { color: var(--green); background: rgba(74, 222, 128, 0.15); border: 1px solid rgba(74, 222, 128, 0.3); }
-    .card-title {
-      margin: 0 0 0.75rem;
-      font-size: 1.25rem;
-      color: #fff;
-      line-height: 1.4;
-    }
-    .card-summary {
-      color: var(--muted);
-      font-size: 0.95rem;
-      line-height: 1.6;
-      margin-bottom: 1.25rem;
-      flex-grow: 1;
-    }
-    .card-footer {
-      font-family: var(--mono);
-      font-size: 0.8rem;
-      color: var(--muted);
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
-      padding-top: 0.85rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .card-footer a {
-      color: var(--cyan);
-      text-decoration: none;
-      font-weight: 600;
-    }
-    .card-footer a:hover {
-      text-decoration: underline;
-    }
-    footer {
-      margin-top: 4rem;
-      text-align: center;
-      font-family: var(--mono);
-      font-size: 0.85rem;
-      color: var(--muted);
-      padding: 2rem 0;
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
-    }
-    @media (max-width: 640px) {
-      h1 { font-size: 1.8rem; }
-      .grid { grid-template-columns: 1fr; }
-    }
-  </style>
+  <meta name="theme-color" content="#09090b">
+  <title>sh4mr0ck — Ghi chép CTF & an toàn thông tin</title>
+  <meta name="description" content="Blog CTF tiếng Việt của sh4mr0ck: ghi chép về bảo mật web, khai thác nhị phân, dịch ngược, mật mã và điều tra số. Rèn tư duy. Giữ tò mò.">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="vi_VN">
+  <meta property="og:title" content="sh4mr0ck — Giải mã giới hạn. Viết lại cuộc chơi.">
+  <meta property="og:description" content="Một góc ghi chép CTF & an toàn thông tin bằng tiếng Việt. Từ dấu vết đầu tiên đến lá cờ cuối cùng.">
+  <meta property="og:url" content="https://sh4mr0ck17.github.io/httpslocal-demo/">
+  <meta property="og:image" content="https://sh4mr0ck17.github.io/httpslocal-demo/assets/social-cover.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://sh4mr0ck17.github.io/httpslocal-demo/">
+  <link rel="icon" type="image/svg+xml" href="./assets/favicon.svg">
+  <link rel="preload" href="./assets/fonts/be-vietnam-pro-800.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="./assets/styles.css">
+  <script type="module" src="./assets/app.js"></script>
 </head>
 <body>
-  <div id="canvas-container"></div>
-
-  <div class="layout">
-    <header>
-      <div class="badge">
-        <span class="badge-dot"></span>
-        DEFENSIVE & OFFENSIVE LAB ACTIVE
-      </div>
-      <h1>sh4mr0ck17<span>.sec</span></h1>
-      <p class="subtitle">Offensive security research, CTF writeups, web exploitation, and zero-trust infrastructure engineering.</p>
-      
-      <div class="stats-bar">
-        <div class="stat-item">
-          <div class="stat-num">50+</div>
-          <div class="stat-label">CTF Challenges Solved</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-num">TLS/ACME</div>
-          <div class="stat-label">Hardened Infra</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-num">Web & Pwn</div>
-          <div class="stat-label">Specializations</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-num">100%</div>
-          <div class="stat-label">Automated Delivery</div>
-        </div>
-      </div>
-    </header>
-
-    <div class="interactive-panel">
-      <div class="node-hud">
-        <div>3D MATRIX: <span id="node-count" style="color:var(--cyan)">ACTIVE CYBER NODE</span></div>
-        <div>ROTATION: <span id="rot-speed" style="color:var(--green)">1.0x</span></div>
-      </div>
-      <div class="controls">
-        <button class="btn" id="btn-pulse">Trigger Security Ping</button>
-        <button class="btn" id="btn-theme">Toggle Node Grid</button>
+  <a class="skip-link" href="#main">Bỏ qua điều hướng</a>
+  <div class="reading-progress" aria-hidden="true"><span id="reading-progress"></span></div>
+  <header class="site-header">
+    <div class="header-inner wrap">
+      <a class="brand" href="#trang-chu" aria-label="sh4mr0ck — Trang chủ">
+        <svg class="brand-mark" width="34" height="34" aria-hidden="true"><use href="./assets/icons.svg#clover"></use></svg>
+        <span>sh4mr0ck<span class="brand-suffix">.ctf</span></span>
+      </a>
+      <button class="icon-button menu-toggle" id="menu-toggle" aria-label="Mở điều hướng" aria-expanded="false" aria-controls="site-nav"><svg aria-hidden="true"><use href="./assets/icons.svg#menu"></use></svg></button>
+      <nav id="site-nav" class="site-nav" aria-label="Điều hướng chính">
+        <a href="#trang-chu" class="nav-link" aria-current="page">Trang chủ</a>
+        <a href="#bai-viet" class="nav-link">Bài viết</a>
+        <a href="#chuyen-muc" class="nav-link">Chuyên mục</a>
+        <a href="#ve-minh" class="nav-link">Về mình</a>
+      </nav>
+      <div class="header-actions">
+        <button class="nav-search icon-button" id="search-toggle" aria-label="Tìm kiếm bài viết"><svg aria-hidden="true"><use href="./assets/icons.svg#search"></use></svg><kbd>/</kbd></button>
+        <a class="github-button" href="https://github.com/sh4mr0ck17" target="_blank" rel="noopener noreferrer"><svg aria-hidden="true"><use href="./assets/icons.svg#github"></use></svg><span>GitHub</span><svg class="small-icon" aria-hidden="true"><use href="./assets/icons.svg#arrow-up"></use></svg></a>
       </div>
     </div>
+  </header>
 
-    <main class="grid">
-      <article class="card">
-        <div>
-          <span class="card-tag tag-blue">Infrastructure</span>
-          <h2 class="card-title">Production HTTPS & Let's Encrypt for Non-Domain Lab Servers</h2>
-          <p class="card-summary">Overcoming the missing public domain challenge. Using DuckDNS, sslip.io, and win-acme on Windows VPS environments with auto-renewing TLS certificates.</p>
+  <main id="main" tabindex="-1">
+    <div id="home-view">
+      <section class="hero wrap" id="trang-chu" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow"><span class="status-dot" aria-hidden="true"></span> GHI CHÉP CTF & AN TOÀN THÔNG TIN</p>
+          <h1 id="hero-title">Giải mã giới hạn.<br>Viết lại <span>cuộc chơi.</span></h1>
+          <p class="hero-description">Từ dấu vết đầu tiên đến lá cờ cuối cùng.<br> Những ghi chép về bảo mật, tư duy giải bài và niềm vui khi hiểu được cách mọi thứ vận hành.</p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#bai-viet">Khám phá bài viết <svg aria-hidden="true"><use href="./assets/icons.svg#arrow-right"></use></svg></a>
+            <a class="button button-quiet" href="#ve-minh">Về tác giả <svg aria-hidden="true"><use href="./assets/icons.svg#arrow-up"></use></svg></a>
+          </div>
+          <div class="hero-note"><span class="mono">01 /</span><span>Không chỉ tìm lời giải.<br><strong>Tìm cách đặt câu hỏi đúng.</strong></span></div>
         </div>
-        <div class="card-footer">
-          <span>2026-10-01 // IIS / ACME</span>
-          <a href="#lab-infra">#infra</a>
+        <div class="hero-art" aria-label="Mô hình mạng lưới 3D tương tác màu đỏ">
+          <div class="art-topline mono"><span><span class="tiny-cross" aria-hidden="true">+</span> KHÔNG GIAN TƯ DUY</span><span>THREE.JS</span></div>
+          <div class="scene-host" id="scene-host" data-scene="loading">
+            <svg class="scene-fallback" viewBox="0 0 500 460" aria-hidden="true">
+              <g fill="none" stroke="currentColor"><ellipse cx="250" cy="230" rx="188" ry="62" transform="rotate(-26 250 230)" opacity=".55"/><ellipse cx="250" cy="230" rx="174" ry="90" transform="rotate(55 250 230)" opacity=".35"/><path d="m250 105 108 62 0 126-108 62-108-62V167Zm0 0v125m108-63-108 63-108-63m0 126 108-63 108 63m-108-63v125" stroke-width="1.5"/><circle cx="250" cy="230" r="140" stroke-dasharray="2 7" opacity=".5"/><circle cx="375" cy="131" r="5" fill="currentColor"/></g>
+            </svg>
+          </div>
+          <span class="art-coordinate mono" aria-hidden="true">X: 0x17<br>Y: 0xCF</span>
+          <div class="art-controls">
+            <span class="scene-status mono" id="scene-status">Đang khởi tạo 3D</span>
+            <div class="scene-buttons">
+              <button class="scene-control" id="scene-pulse" disabled><svg aria-hidden="true"><use href="./assets/icons.svg#waves"></use></svg>Phát xung</button>
+              <button class="scene-control" id="scene-pause" disabled aria-pressed="false"><svg aria-hidden="true"><use href="./assets/icons.svg#pause"></use></svg><span>Tạm dừng 3D</span></button>
+            </div>
+          </div>
         </div>
-      </article>
+      </section>
 
-      <article class="card">
-        <div>
-          <span class="card-tag tag-red">Web Exploitation</span>
-          <h2 class="card-title">Server-Side Template Injection (SSTI) in Modern Web Frameworks</h2>
-          <p class="card-summary">Exploration of blind and inclusion-based SSTI payloads. Dissecting Jinja2, Twig, and Node.js rendering bugs to achieve stable command execution.</p>
+      <div class="hero-bottom wrap">
+        <p><svg aria-hidden="true"><use href="./assets/icons.svg#terminal"></use></svg><span class="mono">tò_mò → khám_phá → thấu_hiểu</span></p>
+        <div class="hero-stats"><span><strong id="post-total">—</strong> bài viết</span><span><strong id="category-total">—</strong> chuyên mục</span><span class="language-stat"><strong>Tiếng Việt</strong> · Không quảng cáo</span></div>
+      </div>
+
+      <section class="featured-section wrap" aria-labelledby="featured-heading">
+        <div class="section-heading compact-heading"><p class="eyebrow muted">ĐÁNG ĐỂ BẮT ĐẦU</p><h2 class="sr-only" id="featured-heading">Bài viết nổi bật</h2><span class="mono muted">Đọc. Thử. Hiểu.</span></div>
+        <div class="featured-layout">
+          <div id="featured-slot" class="featured-slot" aria-busy="true"><div class="loading-card">Đang tải bài viết nổi bật…</div></div>
+          <aside class="journal-note">
+            <span class="note-symbol" aria-hidden="true">“</span>
+            <h2>Mỗi bài toán là<br>một góc nhìn mới.</h2>
+            <p>Nơi mình lưu lại những điều đã học, các giả thuyết đã thử và cách tiếp cận đáng để nhớ.</p>
+            <a class="text-link" href="#ve-minh">Câu chuyện phía sau <svg aria-hidden="true"><use href="./assets/icons.svg#arrow-right"></use></svg></a>
+            <span class="note-line mono">GHI CHÉP, KHÔNG PHẢI THÀNH TÍCH.</span>
+          </aside>
         </div>
-        <div class="card-footer">
-          <span>2026-09-18 // Web CTF</span>
-          <a href="#ssti">#exploit</a>
+      </section>
+
+      <section class="library wrap" id="bai-viet" aria-labelledby="library-heading">
+        <div class="section-heading library-heading"><div><p class="eyebrow muted">KHO GHI CHÉP</p><h2 id="library-heading">Bài viết mới nhất<span class="red">.</span></h2></div><span class="section-index mono">/ 02</span></div>
+        <div class="library-tools">
+          <div class="search-field"><label for="search" class="sr-only">Tìm bài viết</label><svg aria-hidden="true"><use href="./assets/icons.svg#search"></use></svg><input id="search" type="search" placeholder="Tìm chủ đề, kỹ thuật, từ khóa…" autocomplete="off"><kbd>/</kbd></div>
+          <div class="sort-field"><label for="sort">Sắp xếp</label><select id="sort"><option value="newest">Mới nhất</option><option value="oldest">Cũ nhất</option><option value="shortest">Đọc nhanh nhất</option></select></div>
         </div>
-      </article>
-
-      <article class="card">
-        <div>
-          <span class="card-tag tag-yellow">CTF Analysis</span>
-          <h2 class="card-title">Reversing AI CTF Challenges: Prompt Leakage & Model Jailbreaks</h2>
-          <p class="card-summary">Methodologies for prompt extraction, delimiter evasion, and breaking automated LLM evaluators in modern offensive cybersecurity competitions.</p>
+        <div class="filter-row" id="chuyen-muc" role="group" aria-label="Lọc theo chuyên mục">
+          <button class="filter active" data-category="all" aria-pressed="true">Tất cả</button>
+          <button class="filter" data-category="web" aria-pressed="false">Bảo mật web</button>
+          <button class="filter" data-category="pwn" aria-pressed="false">Khai thác nhị phân</button>
+          <button class="filter" data-category="reverse" aria-pressed="false">Dịch ngược</button>
+          <button class="filter" data-category="crypto" aria-pressed="false">Mật mã</button>
+          <button class="filter" data-category="forensics" aria-pressed="false">Điều tra số</button>
+          <button class="filter" data-category="infra" aria-pressed="false">Hạ tầng</button>
+          <button class="filter" data-category="ai" aria-pressed="false">Bảo mật AI</button>
+          <button class="filter saved-filter" id="saved-filter" aria-pressed="false"><svg aria-hidden="true"><use href="./assets/icons.svg#bookmark"></use></svg>Đã lưu <span id="saved-count">0</span></button>
         </div>
-        <div class="card-footer">
-          <span>2026-09-15 // AI / ML</span>
-          <a href="#ai-ctf">#writeup</a>
-        </div>
-      </article>
+        <div class="result-meta"><span id="result-count" role="status" aria-live="polite">Đang tải kho ghi chép…</span><span class="mono">HỌC BẰNG CÁCH HIỂU</span></div>
+        <div class="post-grid" id="post-grid" aria-busy="true"><div class="loading-card">Đang tải bài viết…</div></div>
+        <div class="empty-state" id="empty-state" hidden><svg aria-hidden="true"><use href="./assets/icons.svg#search"></use></svg><h3>Chưa tìm thấy bài phù hợp</h3><p>Thử một từ khóa khác hoặc bỏ bớt bộ lọc nhé.</p><button class="button button-outline" id="clear-filters">Xóa bộ lọc</button></div>
+        <div id="load-error" class="empty-state" hidden><h3>Chưa tải được bài viết</h3><p>Kiểm tra kết nối rồi thử tải lại trang. Nếu chạy trên máy, hãy dùng <code>npm run dev</code> thay vì mở tệp HTML trực tiếp.</p><button class="button button-outline" id="retry-load">Thử lại</button></div>
+        <noscript><p class="noscript-note">Bạn cần bật JavaScript để tìm kiếm và mở trang đọc bài. Nội dung gốc vẫn có thể xem trong <a href="./content/posts.json">tệp bài viết</a> trên website hoặc <a href="https://github.com/sh4mr0ck17/httpslocal-demo/tree/main/content">thư mục nội dung GitHub</a>.</p></noscript>
+      </section>
 
-      <article class="card">
-        <div>
-          <span class="card-tag tag-green">Zero-Trust</span>
-          <h2 class="card-title">Cloudflare Tunnel Architecture: Exposing Internal Services Securely</h2>
-          <p class="card-summary">Eliminating open inbound firewall ports. Routing webserver traffic through QUIC-based cloudflared daemons without sacrificing end-user TLS trust.</p>
-        </div>
-        <div class="card-footer">
-          <span>2026-09-08 // Perimeter</span>
-          <a href="#tunnels">#network</a>
-        </div>
-      </article>
+      <section class="about-section wrap" id="ve-minh" aria-labelledby="about-heading">
+        <div class="about-identity"><div class="avatar-mark"><svg aria-hidden="true"><use href="./assets/icons.svg#clover"></use></svg></div><p class="mono muted">NGƯỜI ĐỨNG SAU CÁC GHI CHÉP</p><h2 id="about-heading">Chào, mình là<br><span class="red">sh4mr0ck.</span></h2></div>
+        <div class="about-copy"><p>Mình thích CTF và cách một chi tiết rất nhỏ có thể mở ra cả một hướng giải. Blog này là góc ghi chép về an toàn thông tin: viết lại điều đã hiểu, chia sẻ cách tiếp cận và học thêm từ những người cùng tò mò.</p><p class="muted">Bài viết ở đây là tài liệu kỹ thuật dành cho CTF, phòng thực hành và các hệ thống được phép kiểm thử. Không phải hồ sơ thành tích hay bằng chứng đã giải một cuộc thi.</p><a class="button button-outline" href="https://github.com/sh4mr0ck17" target="_blank" rel="noopener noreferrer"><svg aria-hidden="true"><use href="./assets/icons.svg#github"></use></svg>Gặp mình trên GitHub <svg aria-hidden="true"><use href="./assets/icons.svg#arrow-up"></use></svg></a></div>
+      </section>
+    </div>
 
-      <article class="card">
-        <div>
-          <span class="card-tag tag-blue">Hardening</span>
-          <h2 class="card-title">Content Security Policy (CSP) & Strict Transport Security Best Practices</h2>
-          <p class="card-summary">Preventing XSS and downgrade attacks with zero-dependency browser security headers. Full dissection of frame-ancestors, upgrade-insecure-requests, and HSTS preload.</p>
-        </div>
-        <div class="card-footer">
-          <span>2026-08-27 // Defensive</span>
-          <a href="#headers">#defend</a>
-        </div>
-      </article>
+    <section id="article-view" class="article-view wrap" aria-labelledby="article-title" hidden>
+      <div class="article-topbar"><a href="#bai-viet" class="text-link"><svg aria-hidden="true"><use href="./assets/icons.svg#arrow-left"></use></svg>Trở về kho ghi chép</a><span class="mono muted">CHẾ ĐỘ ĐỌC</span></div>
+      <header class="article-header"><div class="article-badges" id="article-badges"></div><h1 id="article-title" tabindex="-1"></h1><p id="article-summary"></p><div class="article-meta" id="article-meta"></div><div class="article-actions"><button class="button button-outline" id="article-save" aria-pressed="false"><svg aria-hidden="true"><use href="./assets/icons.svg#bookmark"></use></svg><span>Lưu bài viết</span></button><button class="button button-quiet" id="article-share"><svg aria-hidden="true"><use href="./assets/icons.svg#link"></use></svg>Sao chép liên kết</button></div></header>
+      <div class="article-layout"><article class="article-body" id="article-body"></article><aside class="article-sidebar"><details class="toc" open><summary>Trong bài viết này</summary><nav id="article-toc" aria-label="Mục lục bài viết"></nav></details><div class="reading-note"><svg aria-hidden="true"><use href="./assets/icons.svg#shield"></use></svg><p>Chỉ thực hành trong CTF, phòng thực hành hoặc phạm vi được cho phép.</p></div></aside></div>
+      <section class="related-section" aria-labelledby="related-heading"><h2 id="related-heading">Có thể bạn muốn đọc tiếp<span class="red">.</span></h2><div class="post-grid" id="related-posts"></div></section>
+    </section>
+  </main>
 
-      <article class="card">
-        <div>
-          <span class="card-tag tag-red">Binary Exploitation</span>
-          <h2 class="card-title">Modern Stack Protections: Bypassing ASLR & Stack Canaries</h2>
-          <p class="card-summary">Practical walkthrough of information leak primitives, ROP chain construction, and ret2libc techniques under contemporary Linux kernels.</p>
-        </div>
-        <div class="card-footer">
-          <span>2026-08-14 // Pwn</span>
-          <a href="#pwn">#binary</a>
-        </div>
-      </article>
-    </main>
-
-    <footer>
-      <p>&copy; 2026 sh4mr0ck17. Powered by Three.js & GitHub Pages. Static TLS secured.</p>
-    </footer>
-  </div>
-
-  <!-- Three.js CDN -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script>
-    (function() {
-      const container = document.getElementById('canvas-container');
-      const scene = new THREE.Scene();
-      
-      const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-      camera.position.z = 24;
-
-      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      container.appendChild(renderer.domElement);
-
-      // Node Geometry - Cyber Shield Sphere / Icosahedron
-      const sphereGeo = new THREE.IcosahedronGeometry(9, 2);
-      const sphereMat = new THREE.MeshBasicMaterial({
-        color: 0x38bdf8,
-        wireframe: true,
-        transparent: true,
-        opacity: 0.18
-      });
-      const shieldSphere = new THREE.Mesh(sphereGeo, sphereMat);
-      scene.add(shieldSphere);
-
-      // Inner Core Mesh
-      const coreGeo = new THREE.IcosahedronGeometry(4.5, 1);
-      const coreMat = new THREE.MeshBasicMaterial({
-        color: 0x818cf8,
-        wireframe: true,
-        transparent: true,
-        opacity: 0.4
-      });
-      const coreMesh = new THREE.Mesh(coreGeo, coreMat);
-      scene.add(coreMesh);
-
-      // Cyber Particles / Nodes
-      const particleCount = 220;
-      const particleGeo = new THREE.BufferGeometry();
-      const positions = new Float32Array(particleCount * 3);
-
-      for (let i = 0; i < particleCount * 3; i += 3) {
-        positions[i] = (Math.random() - 0.5) * 55;
-        positions[i + 1] = (Math.random() - 0.5) * 55;
-        positions[i + 2] = (Math.random() - 0.5) * 35;
-      }
-
-      particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-      const particleMat = new THREE.PointsMaterial({
-        color: 0x38bdf8,
-        size: 0.18,
-        transparent: true,
-        opacity: 0.65
-      });
-      const particles = new THREE.Points(particleGeo, particleMat);
-      scene.add(particles);
-
-      // Mouse tracking for parallax
-      let mouseX = 0;
-      let mouseY = 0;
-      let targetX = 0;
-      let targetY = 0;
-
-      window.addEventListener('mousemove', (e) => {
-        mouseX = (e.clientX - window.innerWidth / 2) * 0.0012;
-        mouseY = (e.clientY - window.innerHeight / 2) * 0.0012;
-      });
-
-      // Window resize handler
-      window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-      });
-
-      // Interactive controls
-      let speedMultiplier = 1.0;
-      const btnPulse = document.getElementById('btn-pulse');
-      const btnTheme = document.getElementById('btn-theme');
-      const rotSpeedEl = document.getElementById('rot-speed');
-
-      if (btnPulse) {
-        btnPulse.addEventListener('click', () => {
-          speedMultiplier = 4.0;
-          shieldSphere.scale.set(1.15, 1.15, 1.15);
-          sphereMat.opacity = 0.55;
-          coreMat.color.setHex(0x4ade80);
-          setTimeout(() => {
-            speedMultiplier = 1.0;
-            shieldSphere.scale.set(1.0, 1.0, 1.0);
-            sphereMat.opacity = 0.18;
-            coreMat.color.setHex(0x818cf8);
-            rotSpeedEl.innerText = "1.0x";
-          }, 800);
-          rotSpeedEl.innerText = "4.0x (PING)";
-        });
-      }
-
-      if (btnTheme) {
-        btnTheme.addEventListener('click', () => {
-          sphereMat.wireframe = !sphereMat.wireframe;
-          sphereMat.opacity = sphereMat.wireframe ? 0.18 : 0.08;
-        });
-      }
-
-      // Animation Loop
-      function animate() {
-        requestAnimationFrame(animate);
-
-        targetX += (mouseX - targetX) * 0.05;
-        targetY += (mouseY - targetY) * 0.05;
-
-        shieldSphere.rotation.x += 0.0018 * speedMultiplier;
-        shieldSphere.rotation.y += 0.0028 * speedMultiplier;
-
-        coreMesh.rotation.x -= 0.003 * speedMultiplier;
-        coreMesh.rotation.y -= 0.004 * speedMultiplier;
-
-        particles.rotation.y += 0.0006;
-
-        scene.rotation.y = targetX * 1.5;
-        scene.rotation.x = targetY * 1.5;
-
-        renderer.render(scene, camera);
-      }
-
-      animate();
-    })();
-  </script>
+  <footer class="site-footer wrap"><div class="footer-main"><a class="brand" href="#trang-chu"><svg class="brand-mark" aria-hidden="true"><use href="./assets/icons.svg#clover"></use></svg><span>sh4mr0ck<span class="brand-suffix">.ctf</span></span></a><p>Rèn tư duy. <span class="muted">Giữ tò mò.</span></p><a class="text-link" href="https://github.com/sh4mr0ck17/httpslocal-demo" target="_blank" rel="noopener noreferrer">Xem mã nguồn <svg aria-hidden="true"><use href="./assets/icons.svg#arrow-up"></use></svg></a></div><div class="footer-bottom"><span>© 2026 sh4mr0ck17 · Viết bằng tiếng Việt.</span><span>Three.js & GitHub Pages · Không theo dõi người đọc.</span><a href="#trang-chu">Lên đầu trang ↑</a></div></footer>
+  <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
 </body>
 </html>

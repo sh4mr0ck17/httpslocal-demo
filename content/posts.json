@@ -1,0 +1,542 @@
+[
+  {
+    "slug": "idor-doc-dung-quyen-trong-lab",
+    "title": "Đọc đúng quyền: hiểu IDOR bằng hai người dùng trong lab",
+    "category": "web",
+    "difficulty": "Cơ bản",
+    "date": "2026-10-01",
+    "minutes": 6,
+    "summary": "Dùng hai người dùng và tài liệu giả để phân biệt đăng nhập với quyền truy cập, đặt kiểm tra ở phía máy chủ và xây dựng kiểm thử hồi quy cho IDOR.",
+    "tags": ["IDOR", "BOLA", "Phân quyền", "Kiểm thử hồi quy"],
+    "featured": true,
+    "kind": "Ghi chép kỹ thuật",
+    "sections": [
+      {
+        "heading": "Đăng nhập chưa có nghĩa là được đọc",
+        "paragraphs": [
+          "Ghi chép kỹ thuật này dùng một kho tài liệu giả trong lab để giải thích IDOR, không mô tả một mục tiêu bị khai thác. Xác thực trả lời người dùng là ai; phân quyền trả lời người đó được làm gì với tài liệu cụ thể. Một phiên đăng nhập hợp lệ không tự động cho phép đọc mọi bản ghi. Trong API, thiếu kiểm tra ở cấp đối tượng thường được gọi là BOLA."
+        ]
+      },
+      {
+        "heading": "Thiết kế phép thử có đối chứng",
+        "paragraphs": [
+          "Tạo hai người dùng A và B, mỗi người sở hữu một tài liệu không chứa thông tin thật. Ghi lại việc A đọc tài liệu của A thành công, rồi dùng phiên của B đọc đúng tài liệu đó. Không dò hàng loạt mã tài liệu. So sánh mã trạng thái, nội dung và dữ liệu thực sự được trả về: phản hồi 200 có thể chỉ là trang đăng nhập. Kiểm thử cả chiều ngược lại để loại trừ dữ liệu dùng chung."
+        ]
+      },
+      {
+        "heading": "Đưa quyết định về phía máy chủ",
+        "paragraphs": [
+          "Ví dụ Python dưới đây chạy hoàn toàn trong bộ nhớ. A và B là định danh giả do bộ kiểm thử truyền vào, không phải tham số tin cậy lấy từ trình duyệt. Trong ứng dụng thật, danh tính phải đến từ phiên đã xác thực. Truy vấn nên ràng buộc cả mã tài liệu lẫn chủ sở hữu hoặc tenant, rồi mới trả dữ liệu. Chính sách chia sẻ hợp lệ cần được mô hình hóa riêng."
+        ],
+        "code": {
+          "language": "python",
+          "text": "documents = {\n    101: {\"owner\": \"A\", \"text\": \"Tài liệu thử A\"},\n    202: {\"owner\": \"B\", \"text\": \"Tài liệu thử B\"},\n}\n\ndef read_document(current_user, document_id):\n    document = documents.get(document_id)\n    if document is None or document[\"owner\"] != current_user:\n        raise PermissionError(\"Không được truy cập\")\n    return document[\"text\"]\n\nassert read_document(\"A\", 101) == \"Tài liệu thử A\"\nassert read_document(\"B\", 202) == \"Tài liệu thử B\"\nfor user, document_id in [(\"B\", 101), (\"A\", 202)]:\n    try:\n        read_document(user, document_id)\n    except PermissionError:\n        pass\n    else:\n        raise AssertionError(\"Thiếu kiểm tra quyền\")\nprint(\"Hai lượt đọc đúng quyền; hai lượt đọc chéo bị từ chối\")"
+        }
+      },
+      {
+        "heading": "Các đường đọc thường bị bỏ sót",
+        "paragraphs": [
+          "UUID khó đoán giúp giảm khả năng tìm mã, nhưng không thay thế phân quyền. Tệp đính kèm, tải xuống, xuất dữ liệu và truy vấn theo lô đều cần cùng chính sách với tài liệu gốc. Cache cũng phải được thiết kế để không trả nội dung của A cho B. Với thao tác ghi, kiểm tra quyền trước khi cập nhật; không nhận owner từ JSON của khách. Trong lab, có thể dùng 403 hoặc 404 theo chính sách nhất quán để hạn chế tiết lộ sự tồn tại của tài liệu."
+        ]
+      },
+      {
+        "heading": "Điểm cần nhớ và kiểm thử hồi quy",
+        "paragraphs": [
+          "Lưu các trường hợp được phép và bị cấm thành kiểm thử tự động. Bằng chứng hữu ích gồm chủ sở hữu, danh tính phiên, hành động và kết quả; không cần chụp dữ liệu nhạy cảm."
+        ],
+        "list": [
+          "Mọi đường truy cập đối tượng phải kiểm tra chủ thể, tài nguyên và hành động ở máy chủ.",
+          "Thử người dùng khác, tenant khác và phiên chưa đăng nhập bằng dữ liệu do mình tạo.",
+          "Không suy ra an toàn chỉ từ mã trạng thái hoặc việc mã tài liệu khó đoán.",
+          "Chạy lại bộ kiểm thử sau khi thay đổi cache, chức năng chia sẻ hoặc điểm cuối xuất dữ liệu."
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "https-lab-lets-encrypt-acme",
+    "title": "HTTPS cho lab không có tên miền riêng: hiểu đúng Let's Encrypt và ACME",
+    "category": "infra",
+    "difficulty": "Trung bình",
+    "date": "2026-10-01",
+    "minutes": 6,
+    "summary": "Phân biệt HTTPS cục bộ với chứng thư công khai, hiểu các bước xác minh ACME và tránh biến việc gia hạn TLS thành một thao tác thủ công dễ quên.",
+    "tags": ["HTTPS", "Let's Encrypt", "ACME", "IIS", "TLS"],
+    "featured": false,
+    "kind": "Ghi chép kỹ thuật",
+    "sections": [
+      {
+        "heading": "Tên truy cập, chứng thư và miền tin cậy",
+        "paragraphs": [
+          "Ghi chép kỹ thuật này mở rộng chủ đề HTTPS và Let's Encrypt trên máy lab từ trang giới thiệu gốc. TLS mã hóa đường truyền, còn chứng thư giúp khách kiểm tra máy chủ đang kết nối. Tên trong URL phải khớp Subject Alternative Name; chuỗi chứng thư phải dẫn tới CA mà khách tin cậy. Chỉ bật cổng HTTPS không đủ: một chứng thư sai tên vẫn phải bị từ chối."
+        ]
+      },
+      {
+        "heading": "Bắt đầu bằng lab cục bộ",
+        "paragraphs": [
+          "Với localhost hoặc địa chỉ loopback, dùng CA phát triển riêng hay công cụ tạo chứng thư cục bộ; Let's Encrypt không cấp chứng thư cho localhost. Chỉ thêm CA thử vào môi trường học tập được kiểm soát. Ví dụ Python bên dưới minh họa mặc định xác minh của thư viện ssl, không mở kết nối mạng. Nếu cần thử máy chủ thật trong lab, tạo chứng thư có SAN tương ứng localhost và bảo vệ khóa riêng ngoài kho mã nguồn."
+        ],
+        "code": {
+          "language": "python",
+          "text": "import ssl\n\ncontext = ssl.create_default_context()\nassert context.check_hostname is True\nassert context.verify_mode == ssl.CERT_REQUIRED\nprint(\"Kiểm tra tên máy chủ và chuỗi chứng thư đang bật\")"
+        },
+        "note": "Ví dụ chỉ kiểm tra cấu hình phía khách; không chứng minh một máy chủ đã triển khai HTTPS đúng."
+      },
+      {
+        "heading": "ACME xác minh quyền kiểm soát thế nào",
+        "paragraphs": [
+          "Khi lab cần chứng thư công khai cho tên DNS do bạn kiểm soát, ACME tự động hóa yêu cầu, xác minh và cấp chứng thư. HTTP-01 yêu cầu CA lấy nội dung xác minh qua HTTP ở cổng 80; DNS-01 dùng bản ghi TXT và không đòi hỏi dịch vụ web tiếp nhận kết nối vào. Trỏ một tên DNS tới máy chưa chứng minh quyền kiểm soát tên đó. Kiểm tra hỗ trợ của CA và client trước khi chọn chứng thư địa chỉ IP."
+        ]
+      },
+      {
+        "heading": "Tên miền động và tự động gia hạn",
+        "paragraphs": [
+          "DuckDNS hoặc sslip.io là các lựa chọn đặt tên cần đánh giá về quyền quản lý, phụ thuộc dịch vụ và khả năng đáp ứng challenge, không phải cách bỏ qua xác minh. Trên Windows với IIS, win-acme có thể tham gia quy trình ACME và cập nhật binding theo cấu hình. Trước khi vận hành, thử gia hạn trong môi trường staging, kiểm tra tác vụ định kỳ và xác nhận dịch vụ thực sự nạp chứng thư mới. Không ghi thông tin API DNS vào log."
+        ]
+      },
+      {
+        "heading": "Điểm cần nhớ khi kiểm tra TLS",
+        "paragraphs": [
+          "Đọc kết quả ở phía khách thay vì chỉ nhìn thông báo cài đặt thành công. Mỗi kiểm tra nên có tên truy cập dự kiến, thời hạn và chuỗi tin cậy rõ ràng."
+        ],
+        "list": [
+          "Xác nhận SAN, thời hạn, chuỗi trung gian và quyền đọc khóa riêng trong lab.",
+          "Giữ xác minh chứng thư bật; không biến bỏ qua cảnh báo thành cấu hình mặc định.",
+          "Theo dõi gia hạn thất bại và kiểm tra binding sau khi chứng thư được thay thế.",
+          "HTTPS bảo vệ đường truyền, không sửa lỗi đăng nhập, phân quyền hay dữ liệu bị lộ."
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "ssti-ranh-gioi-mau-va-du-lieu",
+    "title": "SSTI trong framework hiện đại: ranh giới giữa mẫu và dữ liệu",
+    "category": "web",
+    "difficulty": "Trung bình",
+    "date": "2026-09-18",
+    "minutes": 7,
+    "summary": "Quan sát biểu thức vô hại trong Jinja2 để hiểu SSTI, phân biệt autoescape với việc biên dịch mẫu và xây dựng cách render có ranh giới dữ liệu rõ ràng.",
+    "tags": ["SSTI", "Jinja2", "Template", "Phòng vệ"],
+    "featured": false,
+    "kind": "Ghi chép kỹ thuật",
+    "sections": [
+      {
+        "heading": "Khi chuỗi đầu vào trở thành chương trình",
+        "paragraphs": [
+          "Ghi chép kỹ thuật này phát triển chủ đề SSTI của trang giới thiệu gốc, chỉ dùng biểu thức số học trong lab. Template engine nhận một mẫu do lập trình viên kiểm soát và dữ liệu để chèn vào mẫu. SSTI xuất hiện khi đầu vào không tin cậy được đưa vào phần nguồn mẫu rồi biên dịch. Lỗi nằm ở ranh giới dữ liệu và mã, không phải ở tên của framework hay việc ứng dụng có dùng template hay không."
+        ]
+      },
+      {
+        "heading": "Một đối chứng nhỏ bằng Jinja2",
+        "paragraphs": [
+          "Cần Python và gói Jinja2 đã cài trong môi trường lab. Đoạn dưới không dựng webserver, không đọc tệp và không chạy lệnh hệ thống. Cùng một chuỗi được render theo hai đường: đường an toàn truyền chuỗi như giá trị name; đường không an toàn biên dịch chính chuỗi đó. Các assert làm rõ khác biệt có thể kiểm tra lại, thay vì suy luận từ một ảnh chụp kết quả."
+        ],
+        "code": {
+          "language": "python",
+          "text": "from jinja2 import Environment\n\nenvironment = Environment(autoescape=True)\nuser_text = \"{{ 7 * 7 }}\"\nsafe = environment.from_string(\"Xin chào, {{ name }}\").render(name=user_text)\nunsafe = environment.from_string(user_text).render()\nassert safe == \"Xin chào, {{ 7 * 7 }}\"\nassert unsafe == \"49\"\nprint(safe)\nprint(unsafe)"
+        },
+        "note": "Đường unsafe chỉ phục vụ đối chứng cục bộ; không đưa cách render này vào chức năng nhận nội dung người dùng."
+      },
+      {
+        "heading": "Autoescape không ngăn biên dịch mẫu",
+        "paragraphs": [
+          "Autoescape xử lý ký tự trong đầu ra theo ngữ cảnh HTML, giúp giảm một số nguy cơ XSS. Nó không ngăn engine đánh giá biểu thức trong nguồn mẫu. Vì vậy bật autoescape rồi nối dữ liệu người dùng vào mẫu vẫn giữ nguyên nguyên nhân SSTI. Cũng cần phân biệt đánh giá phía máy chủ với biểu thức được thư viện phía trình duyệt xử lý. Quan sát phản hồi gốc và đường render sẽ đáng tin hơn nhìn DOM sau khi JavaScript chạy."
+        ]
+      },
+      {
+        "heading": "Không suy diễn từ một biểu thức",
+        "paragraphs": [
+          "Jinja2, Twig và các engine trong hệ sinh thái Node.js có cú pháp, phép toán và giới hạn khác nhau; một kết quả số học không xác định chắc chắn engine. Trong lab có mã nguồn, ưu tiên đọc API render, phiên bản và cấu hình. Mẫu thư điện tử, bản xem trước và thông báo lỗi cũng có thể đi qua đường biên dịch riêng. Nếu dùng sandbox, coi đó là lớp bổ sung với tài nguyên bị giới hạn, không thay cho việc tách nguồn mẫu khỏi dữ liệu."
+        ]
+      },
+      {
+        "heading": "Điểm cần nhớ và sửa tận gốc",
+        "paragraphs": [
+          "Chọn mẫu từ danh sách cố định và truyền dữ liệu qua biến. Kiểm thử hồi quy nên xác nhận ký tự cú pháp vẫn là dữ liệu khi đến từ người dùng."
+        ],
+        "list": [
+          "Không biên dịch chuỗi ghép từ đầu vào không tin cậy thành template mới.",
+          "Giới hạn đối tượng được đưa vào context; tránh đưa cấu hình nhạy cảm vào mẫu.",
+          "Kiểm tra riêng các chức năng preview, thư điện tử và render nhiều lượt.",
+          "Giữ ví dụ ở phép tính vô hại; không cần chứng minh thực thi lệnh để hiểu lỗi."
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "ai-ctf-prompt-va-ranh-gioi-du-lieu",
+    "title": "AI CTF và rò rỉ prompt: tách chỉ dẫn, dữ liệu và quyền",
+    "category": "ai",
+    "difficulty": "Trung bình",
+    "date": "2026-09-15",
+    "minutes": 6,
+    "summary": "Xây dựng mô hình đe dọa cho ứng dụng LLM trong lab, bảo vệ dữ liệu truy xuất và đặt kiểm tra quyền ngoài mô hình thay vì coi prompt là nơi giữ bí mật.",
+    "tags": ["AI CTF", "LLM", "Prompt", "RAG", "Mô hình đe dọa"],
+    "featured": false,
+    "kind": "Ghi chép kỹ thuật",
+    "sections": [
+      {
+        "heading": "Học kiến trúc thay vì sưu tầm câu vượt rào",
+        "paragraphs": [
+          "Ghi chép kỹ thuật này mở rộng chủ đề AI CTF và rò rỉ prompt của trang giới thiệu gốc theo hướng phòng vệ. Nội dung không cung cấp payload jailbreak hay tuyên bố đã vượt qua một cuộc thi. Một ứng dụng LLM gồm nhiều thành phần: chỉ dẫn hệ thống, lịch sử trò chuyện, dữ liệu truy xuất, công cụ và nơi hiển thị đầu ra. Muốn đánh giá an toàn, trước hết phải biết thành phần nào có quyền gì và dữ liệu đi qua đâu."
+        ]
+      },
+      {
+        "heading": "Xác định tài sản và ranh giới tin cậy",
+        "paragraphs": [
+          "Trong lab, dùng tài liệu giả cho hai người dùng và một công cụ chỉ đọc. Tài sản cần bảo vệ là tài liệu riêng, quyền gọi công cụ và tính toàn vẹn của kết quả. Nội dung lấy từ tệp, trang web hay kết quả tìm kiếm là dữ liệu không tin cậy, kể cả khi nó được trình bày giống chỉ dẫn. Delimiter và nhãn vai trò giúp tổ chức ngữ cảnh nhưng không tạo một cơ chế phân quyền có thể chứng minh."
+        ]
+      },
+      {
+        "heading": "Đặt kiểm tra quyền ngoài mô hình",
+        "paragraphs": [
+          "Máy chủ phải kiểm tra quyền truy xuất trước khi tài liệu vào context, không đợi mô hình hứa giữ kín. Nếu mô hình đề xuất gọi công cụ, lớp thực thi kiểm tra tên công cụ, schema tham số, chủ thể và tài nguyên bằng quy tắc xác định. Không để mô hình tự chọn tenant từ văn bản. Với thao tác có tác động, cần xác nhận phù hợp và cơ chế hủy. Công cụ đọc tài liệu không nên đồng thời có quyền gửi dữ liệu ra ngoài."
+        ]
+      },
+      {
+        "heading": "Một bài kiểm thử không cần bí mật thật",
+        "paragraphs": [
+          "Dựng bộ dữ liệu nhỏ gồm tài liệu công khai và tài liệu chỉ A được đọc, tất cả đều ghi rõ là dữ liệu thử. Gửi các câu hỏi thông thường bằng phiên A, B và phiên chưa đăng nhập; xác nhận tập tài liệu được truy xuất trước khi kiểm tra câu trả lời. Dùng công cụ giả để ghi nhận hành động dự kiến, không thực thi mạng hay lệnh hệ thống. Lặp lại phép thử vì đầu ra mô hình có thể thay đổi giữa các lượt."
+        ],
+        "note": "Kết quả của một câu hỏi không chứng minh khả năng chống mọi prompt injection. Kiểm tra truy xuất và bộ thực thi công cụ là hai lớp riêng."
+      },
+      {
+        "heading": "Điểm cần nhớ về rò rỉ và đầu ra",
+        "paragraphs": [
+          "Prompt có thể chứa chỉ dẫn vận hành, nhưng không nên là kho chứa mật khẩu hay khóa API. Rò rỉ chỉ dẫn và rò rỉ dữ liệu riêng cần được ghi nhận như hai loại rủi ro khác nhau."
+        ],
+        "list": [
+          "Không đặt bí mật thật vào context để thử xem mô hình có giữ kín hay không.",
+          "Áp dụng quyền tài liệu ở tầng truy xuất và quyền hành động ở tầng công cụ.",
+          "Coi đầu ra LLM là dữ liệu; không tự động biến nó thành HTML hoặc lệnh thực thi.",
+          "Lưu cấu hình thử, kết quả truy xuất và quyết định quyền; giảm thông tin nhạy cảm trong log."
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "cloudflare-tunnel-kien-truc-lab",
+    "title": "Cloudflare Tunnel: nối lab mà không bỏ qua phân quyền",
+    "category": "infra",
+    "difficulty": "Trung bình",
+    "date": "2026-09-08",
+    "minutes": 6,
+    "summary": "Hiểu kết nối đi ra của cloudflared, phân biệt Tunnel với Access và kiểm tra đường tới origin trước khi đưa một dịch vụ lab qua lớp trung gian.",
+    "tags": ["Cloudflare Tunnel", "cloudflared", "Zero Trust", "Origin"],
+    "featured": false,
+    "kind": "Ghi chép kỹ thuật",
+    "sections": [
+      {
+        "heading": "Đường hầm giải quyết bài toán nào",
+        "paragraphs": [
+          "Ghi chép kỹ thuật này mở rộng chủ đề Cloudflare Tunnel của trang giới thiệu gốc, dùng một dịch vụ giả trong lab. Connector cloudflared thiết lập kết nối đi ra tới hạ tầng Cloudflare, chuyển yêu cầu về origin mà không cần mở cổng vào trực tiếp cho dịch vụ đó. Điều này thay đổi đường đi của lưu lượng, không tự làm ứng dụng an toàn. Nếu tuyến được công bố nhưng thiếu chính sách truy cập, người ngoài vẫn có thể đến ứng dụng."
+        ]
+      },
+      {
+        "heading": "Tách Tunnel, Access và quyền trong ứng dụng",
+        "paragraphs": [
+          "Tunnel cung cấp đường kết nối; Access có thể đặt chính sách danh tính trước tuyến ứng dụng. Sau lớp đó, ứng dụng vẫn cần xác thực phiên và phân quyền đối tượng của riêng mình. Tài liệu riêng của A không trở thành dữ liệu chung chỉ vì B đã qua Access. Khi ứng dụng sử dụng thông tin danh tính được chuyển tiếp, phải xác minh nguồn và tính hợp lệ của thông tin đó; không tin một header do bất kỳ khách nào gửi."
+        ]
+      },
+      {
+        "heading": "Kiểm tra origin ở phạm vi localhost",
+        "paragraphs": [
+          "Bắt đầu với trang thử chỉ chứa nội dung công khai và lắng nghe ở 127.0.0.1. Kiểm tra dịch vụ cục bộ trước khi cấu hình connector trong lab được phép. Tách tuyến dành cho trang thử khỏi trang quản trị và API nhạy cảm. Nếu connector chạy trong container, localhost là chính container đó, không mặc nhiên là máy host. Vẽ rõ địa chỉ nguồn, địa chỉ origin và cổng để tránh sửa lỗi bằng cách mở dịch vụ trên mọi giao diện mạng."
+        ]
+      },
+      {
+        "heading": "TLS không chỉ có một chặng",
+        "paragraphs": [
+          "Cần phân biệt chặng trình duyệt tới edge với chặng connector tới origin. Origin HTTP trên loopback và origin HTTPS qua mạng lab có ranh giới tin cậy khác nhau. Với HTTPS, kiểm tra tên máy chủ và chuỗi chứng thư thay vì tắt xác minh để hết lỗi. cloudflared có thể dùng QUIC hoặc HTTP/2 theo cấu hình và điều kiện mạng; không nên thiết kế firewall dựa trên giả định chỉ có một giao thức. Thông tin kết nối cần được quan sát từ log đã loại bỏ bí mật."
+        ]
+      },
+      {
+        "heading": "Điểm cần nhớ trước và sau buổi lab",
+        "paragraphs": [
+          "Chỉ công bố dịch vụ thử sau khi xác định dữ liệu được phép xuất hiện. Cuối buổi, dừng connector không còn dùng và xóa tuyến thử theo phạm vi đã thiết lập."
+        ],
+        "list": [
+          "Kiểm tra phiên được phép, phiên không được phép và truy cập chưa đăng nhập.",
+          "Xác nhận origin không còn đường truy cập khác bỏ qua chính sách dự kiến.",
+          "Giữ token connector ngoài mã nguồn, log và ảnh chụp; thu hồi khi không còn cần.",
+          "Kiểm thử hành vi khi connector hoặc origin dừng; phân biệt lỗi đường hầm với lỗi ứng dụng.",
+          "Không dùng dữ liệu thật hay chức năng quản trị làm trang thử cho một tuyến công khai."
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "csp-hsts-hai-lop-phong-ve",
+    "title": "CSP và HSTS: hai lớp phòng vệ, hai mục tiêu khác nhau",
+    "category": "web",
+    "difficulty": "Trung bình",
+    "date": "2026-08-27",
+    "minutes": 7,
+    "summary": "Đặt chính sách nguồn tài nguyên bằng CSP, bảo vệ lựa chọn HTTPS bằng HSTS và triển khai từng bước trên một origin lab có chứng thư hợp lệ.",
+    "tags": ["CSP", "HSTS", "Security Headers", "XSS"],
+    "featured": false,
+    "kind": "Ghi chép kỹ thuật",
+    "sections": [
+      {
+        "heading": "Không gộp hai cơ chế thành một",
+        "paragraphs": [
+          "Ghi chép kỹ thuật này phát triển chủ đề CSP và HSTS từ trang giới thiệu gốc. CSP hạn chế nguồn tài nguyên và một số hành vi của tài liệu; HSTS yêu cầu trình duyệt dùng HTTPS cho tên máy chủ đã ghi nhớ. CSP không sửa chứng thư sai, còn HSTS không ngăn XSS. Cả hai là lớp phòng vệ bổ sung, không thay cho mã hóa đầu ra theo ngữ cảnh, kiểm soát đầu vào và phân quyền ứng dụng."
+        ]
+      },
+      {
+        "heading": "Bắt đầu bằng chính sách nguồn nhỏ",
+        "paragraphs": [
+          "Ví dụ header dưới dành cho trang lab có JavaScript và CSS trong các tệp cùng origin, không dùng đoạn inline. default-src là điểm xuất phát, nhưng base-uri, form-action và frame-ancestors cần được đặt riêng. object-src chặn plugin; frame-ancestors kiểm soát nơi được nhúng trang. Nếu ứng dụng cần CDN hoặc API khác origin, lập danh sách nhu cầu thực tế thay vì mở toàn bộ bằng ký tự đại diện."
+        ],
+        "code": {
+          "language": "http",
+          "text": "Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'\nStrict-Transport-Security: max-age=300"
+        },
+        "note": "Đây là ví dụ header, không phải phản hồi HTTP đầy đủ. Chỉ thử HSTS trên hostname HTTPS riêng có chứng thư được tin cậy; không áp dụng mù quáng cho localhost."
+      },
+      {
+        "heading": "Đo vi phạm trước khi chặn",
+        "paragraphs": [
+          "Triển khai chính sách thử với Content-Security-Policy-Report-Only rồi kiểm tra console và các luồng chính. Chế độ này chỉ quan sát, không thực thi chặn. Nếu cần script inline, nonce phải mới cho mỗi phản hồi và được gắn đúng phần tử; hash phù hợp với nội dung cố định. Tránh dùng unsafe-inline làm cách sửa chung. Khi chuyển sang chặn, kiểm tra trang lỗi, chuyển hướng và chức năng ít dùng, không chỉ trang chủ."
+        ]
+      },
+      {
+        "heading": "Hiểu nơi header có hiệu lực",
+        "paragraphs": [
+          "frame-ancestors không được hỗ trợ qua thẻ meta CSP; cần gửi bằng HTTP response header. HSTS cũng là header và chỉ được ghi nhận qua kết nối HTTPS hợp lệ. Với thời gian ngắn trong lab, theo dõi hành vi nâng HTTP lên HTTPS rồi mới cân nhắc tăng thời hạn. includeSubDomains mở rộng phạm vi tới tên con; preload có quy trình và hệ quả vận hành riêng. Không bật hai lựa chọn này trước khi kiểm kê mọi tên miền con và khả năng duy trì HTTPS."
+        ]
+      },
+      {
+        "heading": "Điểm cần nhớ và giới hạn",
+        "paragraphs": [
+          "upgrade-insecure-requests hỗ trợ nâng URL tài nguyên trong tài liệu, không tương đương ghi nhớ HSTS. Luôn kiểm tra phản hồi cuối cùng sau proxy vì cấu hình ở ứng dụng có thể bị lớp khác thay đổi."
+        ],
+        "list": [
+          "Dùng hostname lab riêng, chứng thư hợp lệ và hồ sơ trình duyệt thử có thể khôi phục.",
+          "Quan sát trước, chặn sau; kiểm tra tài nguyên và các luồng thực tế của trang.",
+          "Không coi Report-Only hoặc thẻ meta là thay thế đầy đủ cho các header cần thiết.",
+          "CSP và HSTS giảm một số rủi ro, không chứng minh rằng toàn bộ ứng dụng đã an toàn."
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "aslr-stack-canary-doc-lop-bao-ve",
+    "title": "ASLR và stack canary: đọc lớp bảo vệ trước khi kết luận",
+    "category": "pwn",
+    "difficulty": "Trung bình",
+    "date": "2026-08-14",
+    "minutes": 7,
+    "summary": "Phân biệt ASLR, PIE, NX, canary và RELRO, đọc dấu hiệu trong ELF của chương trình tự tạo và hiểu vì sao một cơ chế giảm thiểu không thay thế sửa lỗi bộ nhớ.",
+    "tags": ["ASLR", "Stack canary", "ELF", "PIE", "NX"],
+    "featured": false,
+    "kind": "Ghi chép kỹ thuật",
+    "sections": [
+      {
+        "heading": "Giảm thiểu không đồng nghĩa với sửa lỗi",
+        "paragraphs": [
+          "Ghi chép kỹ thuật này mở rộng chủ đề ASLR và stack canary của trang giới thiệu gốc theo hướng quan sát trong lab. Lỗi ghi vượt bộ đệm vẫn là lỗi dù chương trình được biên dịch với các cơ chế bảo vệ. Những cơ chế đó làm một số đường khai thác khó hơn hoặc phát hiện hư hại. Bài này không cung cấp chuỗi ROP hay tuyên bố vượt qua bảo vệ của một mục tiêu."
+        ]
+      },
+      {
+        "heading": "Mỗi lớp bảo vệ có nhiệm vụ riêng",
+        "paragraphs": [
+          "ASLR xáo trộn vị trí các vùng nhớ khi tiến trình được nạp; PIE cho phép mã chính có địa chỉ nền thay đổi. NX đánh dấu các trang dữ liệu không được thực thi. Stack canary đặt giá trị kiểm tra trong một số khung hàm để phát hiện ghi đè trước khi trả về. RELRO hạn chế sửa các vùng phục vụ liên kết động tùy cấu hình. Không lớp nào tự động bảo vệ mọi kiểu ghi sai hay quyết định quyền truy cập dữ liệu."
+        ]
+      },
+      {
+        "heading": "Đọc ELF của chương trình tự tạo",
+        "paragraphs": [
+          "Chuẩn bị lab-safe, một ELF Linux do bạn tự biên dịch, chỉ xử lý chuỗi trong giới hạn bộ đệm. Các lệnh chỉ đọc dưới cần binutils và không chạy chương trình. Xem kiểu ELF, GNU_STACK, GNU_RELRO và bảng symbol. ET_DYN cần được diễn giải cùng loại tệp vì thư viện chia sẻ cũng dùng kiểu này. Symbol __stack_chk_fail là dấu hiệu tham khảo, không chứng minh tất cả hàm có canary; tệp stripped hoặc liên kết tĩnh có thể cần phân tích thêm."
+        ],
+        "code": {
+          "language": "bash",
+          "text": "readelf -hW ./lab-safe\nreadelf -lW ./lab-safe\nreadelf -sW ./lab-safe"
+        },
+        "note": "lab-safe là tệp bạn tự tạo trong lab, không phải artifact được cung cấp hay kết quả của một cuộc thi."
+      },
+      {
+        "heading": "So sánh tĩnh và hành vi lúc chạy",
+        "paragraphs": [
+          "Trong máy ảo, chạy chương trình lành tính nhiều lần rồi quan sát mapping bằng debugger. Địa chỉ thay đổi giúp minh họa ASLR, nhưng địa chỉ giống nhau chưa đủ kết luận ASLR tắt: debugger có thể thay đổi thiết lập cho tiến trình. Ghi lại phiên bản compiler, tùy chọn biên dịch và chế độ debugger. Không tắt ASLR toàn máy để thử. Rò rỉ địa chỉ hoặc dữ liệu canary là vấn đề cần sửa, không phải phần tất yếu của bài học."
+        ]
+      },
+      {
+        "heading": "Điểm cần nhớ khi thiết kế bài lab",
+        "paragraphs": [
+          "So sánh các bản build do mình kiểm soát giúp liên hệ cấu hình với bằng chứng. Kết luận nên nói rõ lớp nào được quan sát, lớp nào chưa đủ dữ liệu và phạm vi kiểm tra."
+        ],
+        "list": [
+          "Ghi đủ kiến trúc, kiểu liên kết và tùy chọn compiler để người khác tái hiện.",
+          "Không suy ra mọi hàm được bảo vệ chỉ từ một symbol hoặc một công cụ tổng hợp.",
+          "Sửa thao tác bộ nhớ sai, kiểm tra độ dài và dùng sanitizer trong quá trình phát triển.",
+          "Giữ cơ chế bảo vệ của máy host nguyên vẹn; mọi thay đổi chỉ nằm trong lab cô lập."
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "reverse-engineering-luong-du-lieu",
+    "title": "Nhập môn dịch ngược: theo luồng dữ liệu, kiểm chứng giả thuyết",
+    "category": "reverse",
+    "difficulty": "Cơ bản",
+    "date": "2026-10-01",
+    "minutes": 6,
+    "summary": "Bắt đầu với mẫu do mình tạo, xác định định dạng và luồng dữ liệu, rồi dùng phép biến đổi byte nhỏ để kiểm chứng cách đọc mã thay vì dựa vào tên biến của decompiler.",
+    "tags": ["Reverse engineering", "Phân tích tĩnh", "Byte", "Lab"],
+    "featured": false,
+    "kind": "Ghi chép kỹ thuật",
+    "sections": [
+      {
+        "heading": "Chọn mẫu và câu hỏi đủ nhỏ",
+        "paragraphs": [
+          "Ghi chép kỹ thuật nhập môn này dùng mẫu do người học tự tạo, không liên quan tới một binary thi đấu đã giải. Mục tiêu reverse engineering là xây dựng mô hình giải thích hành vi quan sát được. Bắt đầu bằng câu hỏi cụ thể: dữ liệu vào được đọc ở đâu, biến đổi thế nào và so sánh với gì? Không chạy một mẫu không rõ nguồn gốc trên máy làm việc; nếu cần phân tích động, dùng máy ảo cô lập không chứa dữ liệu thật."
+        ]
+      },
+      {
+        "heading": "Phân loại trước khi mở decompiler",
+        "paragraphs": [
+          "Xác định định dạng tệp, kiến trúc, thứ tự byte và thư viện liên kết bằng công cụ chỉ đọc. Với ELF tự biên dịch, header và symbol giúp chọn điểm bắt đầu. Chuỗi dễ đọc là manh mối, không phải bằng chứng chương trình sử dụng chúng trên nhánh đang xét. Từ hàm nhập dữ liệu, theo các lời gọi tới phép biến đổi và phép so sánh. Đặt tên giả định cho biến, kèm ghi chú về nơi bằng chứng xuất hiện."
+        ]
+      },
+      {
+        "heading": "Kiểm chứng một phép biến đổi byte",
+        "paragraphs": [
+          "Ví dụ Python tự tạo dữ liệu LAB và biến đổi từng byte bằng phép cộng rồi XOR. Đây là dữ liệu minh họa, không phải flag hoặc đáp án của một cuộc thi. Đảo phép XOR trước rồi trừ, giữ kết quả trong miền một byte bằng & 0xff. Đoạn code giúp kiểm tra thứ tự phép toán; nếu đảo sai thứ tự, một chuỗi ngắn có thể trông gần đúng nhưng không còn khôi phục được mọi byte."
+        ],
+        "code": {
+          "language": "python",
+          "text": "def encode(data):\n    return bytes(((value + 3) & 0xff) ^ 0x2a for value in data)\n\ndef decode(data):\n    return bytes(((value ^ 0x2a) - 3) & 0xff for value in data)\n\nsample = b\"LAB\"\nencoded = encode(sample)\nassert decode(encoded) == sample\nassert decode(encode(bytes(range(256)))) == bytes(range(256))\nprint(encoded.hex())\nprint(decode(encoded).decode(\"ascii\"))"
+        }
+      },
+      {
+        "heading": "Đối chiếu với hành vi thực tế",
+        "paragraphs": [
+          "Decompiler dựng lại mã gần với ngôn ngữ nguồn, nhưng tên biến, kiểu và biểu thức có thể sai. Kiểm tra kích thước thanh ghi, signedness, phép tràn và độ dài vòng lặp trong disassembly. Khi chạy mẫu lành tính do mình tạo, dùng đầu vào ngắn, đầu vào rỗng và byte biên để phân biệt giả thuyết. Với phép so sánh, làm rõ hướng: chương trình biến đổi dữ liệu nhập hay biến đổi dữ liệu lưu sẵn? Hai hướng dẫn tới hai cách diễn giải khác nhau."
+        ]
+      },
+      {
+        "heading": "Điểm cần nhớ khi ghi kết quả",
+        "paragraphs": [
+          "Một kết luận tốt gắn nhận định với offset, hàm hoặc đầu ra có thể kiểm tra. Tách điều quan sát được khỏi tên và cấu trúc do công cụ suy đoán."
+        ],
+        "list": [
+          "Giữ bản gốc và hash của mẫu; mọi chỉnh sửa chỉ thực hiện trên bản sao trong lab.",
+          "Mô tả miền dữ liệu, kích thước byte và thứ tự phép toán trước khi viết lại thuật toán.",
+          "Kiểm tra nhiều đầu vào hợp lệ, không kết luận chỉ vì một chuỗi giải mã nhìn có nghĩa.",
+          "Không tải mẫu riêng hoặc nhạy cảm lên dịch vụ phân tích công khai khi chưa được phép."
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "rsa-can-ban-so-hoc-mo-dun",
+    "title": "RSA căn bản: số học mô-đun không thay thế giao thức an toàn",
+    "category": "crypto",
+    "difficulty": "Cơ bản",
+    "date": "2026-10-01",
+    "minutes": 6,
+    "summary": "Thử RSA với số nguyên nhỏ để hiểu cặp khóa và nghịch đảo mô-đun, sau đó phân biệt mô hình textbook với OAEP, PSS và quản lý khóa trong ứng dụng thật.",
+    "tags": ["RSA", "Số học mô-đun", "OAEP", "PSS"],
+    "featured": false,
+    "kind": "Ghi chép kỹ thuật",
+    "sections": [
+      {
+        "heading": "Bài toán học tập, không phải mã hóa sản phẩm",
+        "paragraphs": [
+          "Ghi chép kỹ thuật này giới thiệu RSA bằng số nguyên nhỏ trong một phép thử cục bộ. Nó không phân tích khóa của người khác hay trình bày flag tìm được. RSA dựa trên phép lũy thừa mô-đun với khóa công khai và khóa riêng có quan hệ toán học. Hiểu phép tính là cần thiết, nhưng chưa đủ để xây dựng cơ chế bảo mật: cách mã hóa thông điệp, sinh khóa và xử lý lỗi đều ảnh hưởng tới an toàn."
+        ]
+      },
+      {
+        "heading": "Từ hai số nguyên tố tới cặp khóa",
+        "paragraphs": [
+          "Chọn hai số nguyên tố phân biệt p và q, đặt n bằng tích của chúng. Trong ví dụ, phi bằng (p − 1)(q − 1). Chọn e nguyên tố cùng nhau với phi; tìm d sao cho e nhân d đồng dư một theo phi. Khóa công khai chứa n và e; p, q cùng các tham số riêng phải được bảo vệ. Thông điệp ở đây là số nguyên m trong khoảng từ không tới n − 1, không phải chuỗi tùy ý."
+        ]
+      },
+      {
+        "heading": "Thử phép tính bằng Python",
+        "paragraphs": [
+          "Đoạn dưới cần Python 3.8 trở lên để dùng pow với số mũ âm và mô-đun. Các số được cố ý chọn nhỏ cho dễ kiểm tra, hoàn toàn không an toàn để dùng thật. pow(m, e, n) tính lũy thừa mô-đun mà không tạo toàn bộ lũy thừa khổng lồ. Assert kiểm tra điều kiện chọn e và việc giải mã trả lại dữ liệu; đây là phép thử số học, không chứng minh tính an toàn mật mã."
+        ],
+        "code": {
+          "language": "python",
+          "text": "from math import gcd\n\np, q, e = 61, 53, 17\nn = p * q\nphi = (p - 1) * (q - 1)\nassert gcd(e, phi) == 1\nd = pow(e, -1, phi)\nm = 42\nassert 0 <= m < n\nc = pow(m, e, n)\nrecovered = pow(c, d, n)\nassert recovered == m\nprint({\"n\": n, \"ciphertext\": c, \"recovered\": recovered})"
+        }
+      },
+      {
+        "heading": "Vì sao textbook RSA chưa đủ",
+        "paragraphs": [
+          "Cùng m và cùng khóa cho cùng ciphertext trong mô hình này; nó còn có cấu trúc đại số không phù hợp để dùng trực tiếp cho dữ liệu ứng dụng. RSA-OAEP là cơ chế mã hóa có padding ngẫu nhiên; RSA-PSS phục vụ chữ ký, không phải mã hóa. Với tệp lớn, dùng thiết kế lai: mã hóa nội dung bằng AEAD và bảo vệ khóa phiên bằng cơ chế thích hợp. Không tự ghép padding, hash hay thông báo lỗi theo cảm giác."
+        ]
+      },
+      {
+        "heading": "Điểm cần nhớ khi đọc bài crypto",
+        "paragraphs": [
+          "Trong bài tập được phép, phân biệt dữ kiện thật với giả định về khóa. Kích thước modulus, nguồn ngẫu nhiên và việc tái sử dụng tham số cần được hiểu trong đúng ngữ cảnh."
+        ],
+        "list": [
+          "Số nhỏ giúp học thuật toán nhưng không đại diện cho mức bảo vệ của khóa thực tế.",
+          "Mã hóa và chữ ký có mục tiêu khác nhau; dùng API thư viện đã được kiểm tra.",
+          "Không đưa khóa riêng vào log, kho mã hoặc dữ liệu mẫu để tiện tái hiện.",
+          "Kiểm tra điều kiện toán học bằng code; một lần giải mã thành công không chứng minh an toàn.",
+          "Tự động hóa quản lý vòng đời khóa và xác định rõ cách thu hồi khi khóa bị lộ."
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "pcap-lab-phan-loai-va-dong-thoi-gian",
+    "title": "Phân loại PCAP trong lab: dựng dòng thời gian trước khi kết luận",
+    "category": "forensics",
+    "difficulty": "Cơ bản",
+    "date": "2026-10-01",
+    "minutes": 7,
+    "summary": "Bảo toàn bản capture, đọc tổng quan giao thức và phiên TCP rồi dựng dòng thời gian có đối chứng, tránh coi một dấu hiệu mạng đơn lẻ là bằng chứng xâm nhập.",
+    "tags": ["PCAP", "Wireshark", "tshark", "Forensics", "Timeline"],
+    "featured": false,
+    "kind": "Ghi chép kỹ thuật",
+    "sections": [
+      {
+        "heading": "Biết mình đang nhìn phần nào của mạng",
+        "paragraphs": [
+          "Ghi chép kỹ thuật này dùng capture từ lưu lượng giả trên loopback trong lab, không phải dữ liệu một sự cố đã điều tra. PCAP lưu các gói mà điểm bắt gói nhìn thấy, không mô tả toàn bộ hệ thống. Trước khi phân tích, ghi lại thời gian, giao diện, bộ lọc bắt gói và giới hạn snaplen. Một tệp thiếu chiều phản hồi hoặc bị cắt ngắn có thể khiến việc dựng phiên sai ngay từ đầu."
+        ]
+      },
+      {
+        "heading": "Chuẩn bị dữ liệu và bảo toàn bản gốc",
+        "paragraphs": [
+          "Tạo dịch vụ HTTP thử chỉ lắng nghe 127.0.0.1, không yêu cầu đăng nhập; bắt vài lượt truy cập vào trang chứa dữ liệu giả rồi dừng capture. Lưu thành lab.pcapng và ghi hash SHA-256 bằng công cụ cục bộ. Phân tích bản sao, giữ bản gốc không thay đổi. Nếu tệp đến từ người khác, kiểm tra phạm vi được phép trước khi xem payload. Cookie, URL và nội dung biểu mẫu có thể chứa thông tin nhạy cảm ngay cả trong capture ngắn."
+        ]
+      },
+      {
+        "heading": "Đọc tổng quan trước payload",
+        "paragraphs": [
+          "Các lệnh dưới cần Wireshark CLI đã cài và lab.pcapng do bạn tự bắt; chúng chỉ đọc tệp, không tạo lưu lượng. capinfos cung cấp thông tin capture, thống kê giao thức giúp xác định dữ liệu nổi bật, còn danh sách hội thoại TCP cho biết các cặp điểm cuối. Với HTTP ở cổng thử, có thể cần cấu hình Decode As; cổng dịch vụ không bảo đảm bộ phân tích tự nhận đúng giao thức."
+        ],
+        "code": {
+          "language": "bash",
+          "text": "capinfos lab.pcapng\ntshark -r lab.pcapng -q -z io,phs\ntshark -r lab.pcapng -q -z conv,tcp\ntshark -r lab.pcapng -Y 'tcp' -T fields -e frame.time_epoch -e tcp.stream -e ip.src -e ip.dst"
+        }
+      },
+      {
+        "heading": "Dựng dòng thời gian có đối chứng",
+        "paragraphs": [
+          "Chọn một tcp.stream và đối chiếu thời điểm mở kết nối, yêu cầu, phản hồi, truyền lại và đóng phiên. Filter hiển thị không giống filter bắt gói; gói bị loại lúc bắt không thể tìm lại bằng cách đổi filter. DNS dài hoặc khoảng kết nối đều là manh mối, không đủ kết luận có kênh bí mật. TLS thường che payload; khóa riêng máy chủ không mặc nhiên giải mã được phiên dùng Diffie–Hellman tạm thời. Chỉ dùng key log từ phiên lab của chính mình khi cần."
+        ]
+      },
+      {
+        "heading": "Điểm cần nhớ khi viết kết luận",
+        "paragraphs": [
+          "Mỗi nhận định nên kèm thời điểm, số frame hoặc stream và điều quan sát được. Tách giả thuyết khỏi bằng chứng, ghi rõ phần dữ liệu thiếu và điều kiện cần kiểm tra tiếp."
+        ],
+        "list": [
+          "Không quy một địa chỉ IP thành danh tính người dùng nếu thiếu bằng chứng bổ sung.",
+          "Chuẩn hóa múi giờ khi ghép PCAP với log; giữ thông tin thời gian gốc.",
+          "Không mở hay thực thi tệp trích xuất; xử lý chúng như dữ liệu không tin cậy.",
+          "Chia sẻ bản đã giảm thông tin nhạy cảm, giữ hash và nguồn gốc bản gốc riêng.",
+          "Báo cáo giới hạn capture thay vì biến việc không thấy gói thành bằng chứng không có hành vi."
+        ]
+      }
+    ]
+  }
+]

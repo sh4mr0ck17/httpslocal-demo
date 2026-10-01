@@ -1,0 +1,42 @@
+name: Kiểm thử blog CTF
+on:
+  push:
+    branches: [main, feat/blog-ctf-viet-3d]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: blog-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  kiem-thu:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Kiểm thử hàm và nội dung
+        run: npm test
+      - name: Build bản tĩnh
+        run: npm run build
+      - name: Kiểm tra tài nguyên đã build được commit
+        run: git diff --exit-code -- assets/app.js assets/scene.js
+      - name: Cài trình duyệt kiểm thử
+        run: npx playwright install --with-deps chromium
+      - name: Kiểm thử giao diện và chức năng
+        run: npm run test:e2e
+      - name: Lưu báo cáo và ảnh chụp
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bao-cao-blog-ctf
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

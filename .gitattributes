@@ -1,0 +1,7 @@
+# Giữ nguyên mã/giấy phép bên thứ ba và chuỗi GLSL đã build.
+# Vẫn kiểm tra whitespace cho toàn bộ mã và nội dung do dự án viết.
+vendor/** -whitespace
+assets/scene.js -whitespace
+assets/fonts/LICENSE*.txt -whitespace
+*.woff2 binary
+*.png binary
